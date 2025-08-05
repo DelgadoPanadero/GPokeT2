@@ -27,7 +27,7 @@ class PokemonEncoder:
         array = []
         for y in range(0, height):
 
-            row = ["%02d" % 4]
+            row = ["%02d" % y]
             for x in range(0, width, 2):
                 r, g, b = image[y, x] // 64
                 is_blank = min(image[y, x]) > 245 or max(image[y, x]) < 10

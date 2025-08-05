@@ -27,7 +27,7 @@ class LocalPokemonRepository():
         self,
     )-> list[PokemonEntity]:
 
-        source_dir = "/home/data/bzr/pokemons_img/"
+        source_dir = "/home/data/bzr/pokemons/"
         os.makedirs(source_dir,exist_ok=True)
         paths = [x for x in Path(source_dir).glob("**/*.png")]
 
