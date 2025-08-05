@@ -1,0 +1,2 @@
+class LocalPokemonTxtRepository():
+    def load():
