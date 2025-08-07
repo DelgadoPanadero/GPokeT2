@@ -70,14 +70,13 @@ class PokemonTrainer:
                 n_ctx=self._context_length,
                 bos_token_id=self._tokenizer.bos_token_id,
                 eos_token_id=self._tokenizer.eos_token_id,
-                # loss_type="ForCausalLMLoss",  # Esto no es parámetro válido en AutoConfig
             )
         )
 
         # Crear vector de pesos para la pérdida
         pad_token_id = self._tokenizer.convert_tokens_to_ids("~")  # token que quieres penalizar menos
         weights = torch.ones(len(self._tokenizer))
-        weights[pad_token_id] = 0.1  # penalizar menos el token "~"
+        weights[pad_token_id] = 0.5  # penalizar menos el token "~"
         self._loss_weights = weights
 
     def create_trainer(self, **kwargs):
@@ -103,14 +102,14 @@ class PokemonTrainer:
         default_args.update(kwargs)
         trainer_args = TrainingArguments(**default_args)
 
-        trainer = WeightedLossTrainer(
+        trainer = Trainer(
             model=self._model,
             tokenizer=self._tokenizer,
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
             callbacks=[InferenceCallback(self._tokenizer, interval_steps=10)],
-            loss_weights=self._loss_weights,
+            #loss_weights=self._loss_weights,
         )
 
         return trainer

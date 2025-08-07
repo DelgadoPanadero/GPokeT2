@@ -11,7 +11,7 @@ class LocalProfOakPcRepository():
         self,
         box_entity: BoxEntity
     ):
-        source_dir = f"/home/data/gld/prof_oak_pc/box-{box_entity.name}"
+        source_dir = f"/home/data/gld/prof_oak_pc/{box_entity.name}"
 
         os.makedirs(source_dir,exist_ok=True)
 
@@ -32,11 +32,11 @@ class LocalProfOakPcRepository():
         self,
         box_name: str,
     )->BoxEntity:
-        source_dir = f"/home/data/gld/prof_oak_pc/box-{box_name}"
+        source_dir = f"/home/data/gld/prof_oak_pc/{box_name}"
 
         dataset = DatasetDict.load_from_disk(source_dir)
         with open(f"{source_dir}/tokenizer.json", "r") as fin:
-            tokenizer = Tokenizer.from_str(fin.read())
+            tokenizer = json.load(fin)
 
         return BoxEntity(
             name = box_name,
