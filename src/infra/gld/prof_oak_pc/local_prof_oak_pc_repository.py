@@ -1,5 +1,7 @@
 import os
 import json
+from tokenizers import Tokenizer
+from datasets import DatasetDict
 from src.domain.gld.box_entity import BoxEntity
 
 
@@ -26,3 +28,18 @@ class LocalProfOakPcRepository():
                 )
             )
 
+    def load(
+        self,
+        box_name: str,
+    )->BoxEntity:
+        source_dir = f"/home/data/gld/prof_oak_pc/box-{box_name}"
+
+        dataset = DatasetDict.load_from_disk(source_dir)
+        with open(f"{source_dir}/tokenizer.json", "r") as fin:
+            tokenizer = Tokenizer.from_str(fin.read())
+
+        return BoxEntity(
+            name = box_name,
+            dataset=dataset,
+            tokenizer=tokenizer,
+        )
