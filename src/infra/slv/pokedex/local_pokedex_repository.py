@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
-from src.domain.slv.pokedex_entity import PokedexEntity
+from src.domain.slv.pokedex import PokedexEntity
+from src.domain.slv.pokedex import PokedexRepository
 
 
-class LocalPokedexRepository():
+class LocalPokedexRepository(PokedexRepository):
 
 
     source_dir = "/home/data/slv/pokedex"

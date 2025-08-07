@@ -3,10 +3,11 @@ import cv2
 import numpy as np
 from pathlib import Path
 
-from src.domain.brz.pokemon_entity import PokemonEntity
+from src.domain.brz.pokemon import PokemonEntity
+from src.domain.brz.pokemon import PokemonRepository
 
 
-class LocalPokemonRepository():
+class LocalPokemonRepository(PokemonRepository):
 
     def load_one(
         self,

@@ -1,17 +1,28 @@
 from .pokemon_encoder import PokemonEncoder
-from src.infra.bzr.pokemon.local_pokemon_repository import LocalPokemonRepository
-from src.infra.slv.pokedex.local_pokedex_repository import LocalPokedexRepository
+from src.domain.brz.pokemon import PokemonRepository
+from src.domain.slv.pokedex import PokedexRepository
 
 
-def run():
-    pokemon_list = LocalPokemonRepository().load_all()
+def get_pokedex(
+    pokemon_repository : PokemonRepository,
+    pokedex_repository : PokedexRepository,
+)->None:
+
+    pokemon_list = pokemon_repository.load_all()
 
     pokedex_list = []
     for pokemon_item in pokemon_list:
         pokedex_list += PokemonEncoder().run(pokemon_item)
 
-    LocalPokedexRepository().save_all(pokedex_list)
+    pokedex_repository.save_all(pokedex_list)
 
 
 if __name__=="__main__":
-    run()
+    
+    from src.infra.bzr.pokemon import LocalPokemonRepository
+    from src.infra.slv.pokedex import LocalPokedexRepository
+
+    get_pokedex(
+        pokemon_repository = LocalPokemonRepository,
+        pokedex_repository = LocalPokedexRepository,
+    )

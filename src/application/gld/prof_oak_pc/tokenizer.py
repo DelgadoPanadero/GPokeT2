@@ -9,7 +9,7 @@ from tokenizers.normalizers import NFKC
 from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import WhitespaceSplit
 
-from src.domain.slv.pokedex_entity import PokedexEntity
+from src.domain.slv.pokedex import PokedexEntity
 
 
 class Pokenizer(object):

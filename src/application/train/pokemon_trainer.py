@@ -11,17 +11,31 @@ from transformers import PreTrainedTokenizerFast
 from transformers import DataCollatorForLanguageModeling
 
 from .inference_callback import InferenceCallback
-from src.domain.gld.box_entity import BoxEntity
+from src.domain.gld.prof_oak_pc import BoxEntity
 
 
 
 class WeightedLossTrainer(Trainer):
 
-    def __init__(self, *args, loss_weights=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        loss_weights=None,
+        **kwargs,
+    ):
+
         super().__init__(*args, **kwargs)
         self.loss_weights = loss_weights
 
-    def compute_loss(self, model, inputs, return_outputs=False, *, num_items_in_batch=None):
+    def compute_loss(
+        self,
+        model,
+        inputs,
+        return_outputs=False,
+        *,
+        num_items_in_batch=None
+    ):
+
         labels = inputs.get("labels")
         outputs = model(**inputs)
         logits = outputs.get("logits")

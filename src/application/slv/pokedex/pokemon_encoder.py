@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.typing as npt
 
-from src.domain.slv.pokedex_entity import PokedexEntity
-from src.domain.brz.pokemon_entity import PokemonEntity
+from src.domain.slv.pokedex import PokedexEntity
+from src.domain.brz.pokemon import PokemonEntity
 
 
 class PokemonEncoder:
