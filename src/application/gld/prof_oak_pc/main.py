@@ -18,7 +18,7 @@ def get_prod_oak_pc(
     dataset = pokenizer.tokenize(pokedex_list)
 
     box_entity = BoxEntity(
-        name = "box-" + datetime.now().strftime("%Y%m%d-%H:%M"),
+        name = "box-" + datetime.now().strftime("%Y%m%d-%H%M"),
         tokenizer=pokenizer.to_dict(),
         dataset=dataset,
     )

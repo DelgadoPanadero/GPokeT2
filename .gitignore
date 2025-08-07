@@ -130,5 +130,5 @@ dmypy.json
 
 
 # Ignore all files and folders recursively
-data/**
-!data/**/.gitkeep
+#data/**
+#!data/**/.gitkeep
