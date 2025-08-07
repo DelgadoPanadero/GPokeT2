@@ -37,7 +37,7 @@ class LocalProfOakPcRepository(ProfOakPcRepository):
         box_name: str,
     )->BoxEntity:
         
-        source_dir = f"{self.source_dir}/{{box_entity.name}}"
+        source_dir = f"{self.source_dir}/{box_name}"
 
         dataset = DatasetDict.load_from_disk(source_dir)
         with open(f"{source_dir}/tokenizer.json", "r") as fin:

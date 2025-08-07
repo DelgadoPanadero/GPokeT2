@@ -27,7 +27,7 @@ class WeightedLossTrainer(Trainer):
         super().__init__(*args, **kwargs)
         self.loss_weights = loss_weights
 
-    def compute_loss(
+    def compute_loss(                                                           # type: ignore
         self,
         model,
         inputs,
@@ -40,7 +40,7 @@ class WeightedLossTrainer(Trainer):
         outputs = model(**inputs)
         logits = outputs.get("logits")
 
-        loss_fct = torch.nn.CrossEntropyLoss(weight=self.loss_weights.to(logits.device))
+        loss_fct = torch.nn.CrossEntropyLoss(weight=self.loss_weights.to(logits.device)) # type: ignore
         loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
 
         return (loss, outputs) if return_outputs else loss
