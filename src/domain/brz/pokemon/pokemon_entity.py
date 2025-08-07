@@ -8,9 +8,7 @@ class PokemonEntity(BaseModel):
     name: str
     image: npt.NDArray[np.int8]
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}
 
     @field_serializer("image")
     def serialize_image(self, value):

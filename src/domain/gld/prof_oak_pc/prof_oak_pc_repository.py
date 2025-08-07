@@ -12,11 +12,10 @@ class ProfOakPcRepository(ABC):
 
         NotImplementedError()
 
-
     @abstractmethod
     def load(
         self,
         box_name: str,
-    )->BoxEntity:
-        
+    ) -> BoxEntity:
+
         NotImplementedError()

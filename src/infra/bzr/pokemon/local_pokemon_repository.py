@@ -17,19 +17,18 @@ class LocalPokemonRepository(PokemonRepository):
         image = cv2.imread(str(img_path))
 
         pokemon = PokemonEntity(
-            name = img_path.name,
-            image = np.array(image),
+            name=img_path.name,
+            image=np.array(image),
         )
 
         return pokemon
 
-
     def load_all(
         self,
-    )-> list[PokemonEntity]:
+    ) -> list[PokemonEntity]:
 
         source_dir = "/home/data/bzr/pokemons/"
-        os.makedirs(source_dir,exist_ok=True)
+        os.makedirs(source_dir, exist_ok=True)
         paths = [x for x in Path(source_dir).glob("**/*.png")]
 
         result = []
@@ -37,5 +36,3 @@ class LocalPokemonRepository(PokemonRepository):
             result.append(self.load_one(path))
 
         return result
-
-

@@ -13,10 +13,9 @@ class PokemonRepository(ABC):
 
         NotImplementedError()
 
-
     @abstractmethod
     def load_all(
         self,
-    )-> list[PokemonEntity]:
+    ) -> list[PokemonEntity]:
 
         NotImplementedError()

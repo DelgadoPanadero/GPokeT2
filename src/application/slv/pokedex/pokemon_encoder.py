@@ -13,14 +13,11 @@ class PokemonEncoder:
     ):
         self.n_characters = n_characters
 
-
     @staticmethod
     def _encode(
         image: npt.NDArray[np.int8],
-    )-> list[list[str]]:
-        
-        """
-        """
+    ) -> list[list[str]]:
+        """ """
 
         width, height, _ = image.shape
 
@@ -44,10 +41,9 @@ class PokemonEncoder:
 
     @staticmethod
     def _array_to_text(
-        array : list[list[str]],
-    )->str:
+        array: list[list[str]],
+    ) -> str:
         return "\n".join([" ".join(r) for i, r in enumerate(array)])
-
 
     @classmethod
     def _augmentation(cls, array):
@@ -63,8 +59,8 @@ class PokemonEncoder:
     def run(
         self,
         pokemon: PokemonEntity,
-    )-> list[PokedexEntity]:
-        
+    ) -> list[PokedexEntity]:
+
         image = pokemon.image
 
         array = self._encode(image)
@@ -72,7 +68,7 @@ class PokemonEncoder:
 
         result = []
         for name, array in batch.items():
-            pokedex_name = pokemon.name.replace('.png',f'_{name}.txt')
+            pokedex_name = pokemon.name.replace(".png", f"_{name}.txt")
             pokedex_data = self._array_to_text(array)
             result.append(
                 PokedexEntity(
@@ -82,5 +78,3 @@ class PokemonEncoder:
             )
 
         return result
-
-

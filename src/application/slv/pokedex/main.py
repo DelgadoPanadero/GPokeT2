@@ -4,9 +4,9 @@ from src.domain.slv.pokedex import PokedexRepository
 
 
 def get_pokedex(
-    pokemon_repository : PokemonRepository,
-    pokedex_repository : PokedexRepository,
-)->None:
+    pokemon_repository: PokemonRepository,
+    pokedex_repository: PokedexRepository,
+) -> None:
 
     pokemon_list = pokemon_repository.load_all()
 
@@ -17,12 +17,12 @@ def get_pokedex(
     pokedex_repository.save_all(pokedex_list)
 
 
-if __name__=="__main__":
-    
+if __name__ == "__main__":
+
     from src.infra.bzr.pokemon import LocalPokemonRepository
     from src.infra.slv.pokedex import LocalPokedexRepository
 
     get_pokedex(
-        pokemon_repository = LocalPokemonRepository(),
-        pokedex_repository = LocalPokedexRepository(),
+        pokemon_repository=LocalPokemonRepository(),
+        pokedex_repository=LocalPokedexRepository(),
     )

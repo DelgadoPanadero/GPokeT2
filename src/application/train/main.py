@@ -3,18 +3,18 @@ from src.application.train.pokemon_trainer import PokemonTrainer
 
 
 def train_pokemons(
-    profoakpc_repository : ProfOakPcRepository,
+    profoakpc_repository: ProfOakPcRepository,
 ):
 
     box_entity = profoakpc_repository.load(box_name="box-20250806-1843")
 
     PokemonTrainer(box_entity).create_trainer().train()
-    
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
 
     from src.infra.gld.prof_oak_pc import LocalProfOakPcRepository
 
     train_pokemons(
-        profoakpc_repository = LocalProfOakPcRepository(),
+        profoakpc_repository=LocalProfOakPcRepository(),
     )

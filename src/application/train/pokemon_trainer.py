@@ -3,16 +3,15 @@ import json
 
 import torch
 from tokenizers import Tokenizer
-from transformers import Trainer                                                # type: ignore
+from transformers import Trainer  # type: ignore
 from transformers import AutoConfig
 from transformers import GPT2LMHeadModel
-from transformers import TrainingArguments                                      # type: ignore
-from transformers import PreTrainedTokenizerFast                                # type: ignore
-from transformers import DataCollatorForLanguageModeling                        # type: ignore
+from transformers import TrainingArguments  # type: ignore
+from transformers import PreTrainedTokenizerFast  # type: ignore
+from transformers import DataCollatorForLanguageModeling  # type: ignore
 
 from .inference_callback import InferenceCallback
 from src.domain.gld.prof_oak_pc import BoxEntity
-
 
 
 class WeightedLossTrainer(Trainer):
@@ -27,24 +26,18 @@ class WeightedLossTrainer(Trainer):
         super().__init__(*args, **kwargs)
         self.loss_weights = loss_weights
 
-    def compute_loss(                                                           # type: ignore
-        self,
-        model,
-        inputs,
-        return_outputs=False,
-        *,
-        num_items_in_batch=None
+    def compute_loss(  # type: ignore
+        self, model, inputs, return_outputs=False, *, num_items_in_batch=None
     ):
 
         labels = inputs.get("labels")
         outputs = model(**inputs)
         logits = outputs.get("logits")
 
-        loss_fct = torch.nn.CrossEntropyLoss(weight=self.loss_weights.to(logits.device)) # type: ignore
+        loss_fct = torch.nn.CrossEntropyLoss(weight=self.loss_weights.to(logits.device))  # type: ignore
         loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
 
         return (loss, outputs) if return_outputs else loss
-
 
 
 class PokemonTrainer:
@@ -88,7 +81,9 @@ class PokemonTrainer:
         )
 
         # Crear vector de pesos para la pérdida
-        pad_token_id = self._tokenizer.convert_tokens_to_ids("~")  # token que quieres penalizar menos
+        pad_token_id = self._tokenizer.convert_tokens_to_ids(
+            "~"
+        )  # token que quieres penalizar menos
         weights = torch.ones(len(self._tokenizer))
         weights[pad_token_id] = 0.5  # penalizar menos el token "~"
         self._loss_weights = weights
@@ -123,7 +118,7 @@ class PokemonTrainer:
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
             callbacks=[InferenceCallback(self._tokenizer, interval_steps=10)],
-            #loss_weights=self._loss_weights,
+            # loss_weights=self._loss_weights,
         )
 
         return trainer
