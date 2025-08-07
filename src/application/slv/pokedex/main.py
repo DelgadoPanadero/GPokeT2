@@ -23,6 +23,6 @@ if __name__=="__main__":
     from src.infra.slv.pokedex import LocalPokedexRepository
 
     get_pokedex(
-        pokemon_repository = LocalPokemonRepository,
-        pokedex_repository = LocalPokedexRepository,
+        pokemon_repository = LocalPokemonRepository(),
+        pokedex_repository = LocalPokedexRepository(),
     )

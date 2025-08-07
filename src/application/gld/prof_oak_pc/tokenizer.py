@@ -21,7 +21,7 @@ class Pokenizer(object):
 
     def __init__(
         self,
-        sample_size: int = 1024,
+        sample_size: int = 512,
         ):
         """ """
 

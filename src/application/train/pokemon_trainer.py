@@ -3,12 +3,12 @@ import json
 
 import torch
 from tokenizers import Tokenizer
-from transformers import Trainer
+from transformers import Trainer                                                # type: ignore
 from transformers import AutoConfig
 from transformers import GPT2LMHeadModel
-from transformers import TrainingArguments
-from transformers import PreTrainedTokenizerFast
-from transformers import DataCollatorForLanguageModeling
+from transformers import TrainingArguments                                      # type: ignore
+from transformers import PreTrainedTokenizerFast                                # type: ignore
+from transformers import DataCollatorForLanguageModeling                        # type: ignore
 
 from .inference_callback import InferenceCallback
 from src.domain.gld.prof_oak_pc import BoxEntity
@@ -118,7 +118,7 @@ class PokemonTrainer:
 
         trainer = Trainer(
             model=self._model,
-            tokenizer=self._tokenizer,
+            processing_class=self._tokenizer,
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
