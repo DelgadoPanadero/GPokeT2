@@ -17,6 +17,7 @@ class Pokenizer(object):
     BOS_TOKEN = "[BOS]"
     EOS_TOKEN = "[EOS]"
     UNK_TOKEN = "[UNK]"
+    PAD_TOKEN = "[PAD]"
 
     def __init__(
         self,
@@ -24,19 +25,10 @@ class Pokenizer(object):
         ):
         """ """
 
-#        self._vocab = {"[BOS]", "[EOS]"}
-
         self.sample_size = sample_size
         self._tokenizer = Tokenizer(BPE())
         self._tokenizer.normalizer = NFKC()               # type: ignore
         self._tokenizer.pre_tokenizer = WhitespaceSplit() # type: ignore
-        self._tokenizer.add_special_tokens(
-            {
-                'pad_token': '[PAD]',
-                "bos_token": "[BOS]",
-                "eos_token": "[EOS]",
-            },
-        )
 
 
     def to_dict(self)->dict:
@@ -104,8 +96,13 @@ class Pokenizer(object):
 
         tokenizer_trainer = BpeTrainer(
             show_progress=True,                   # type: ignore
-            special_tokens = ["[BOS]", "[EOS]"],  # type: ignore
             max_token_length=2,                   # type: ignore
+            special_tokens = [                    # type: ignore
+                self.BOS_TOKEN,
+                self.EOS_TOKEN,
+                self.UNK_TOKEN,
+                self.PAD_TOKEN,
+            ],
         )
 
         self._tokenizer.train_from_iterator(
