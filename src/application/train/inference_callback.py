@@ -11,7 +11,7 @@ class InferenceCallback(TrainerCallback):
         tokenizer,
         interval_steps=5000,
         prompt="[BOS]",
-        max_length=512,
+        max_length=1024,
     ):
         self.interval_steps = interval_steps
         self.tokenizer = tokenizer

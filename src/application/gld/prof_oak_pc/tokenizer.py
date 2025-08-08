@@ -21,7 +21,7 @@ class Pokenizer(object):
 
     def __init__(
         self,
-        sample_size: int = 512,
+        sample_size: int = 1024,
     ):
         """ """
 
@@ -37,11 +37,17 @@ class Pokenizer(object):
         self,
         text: str,
     ) -> str:
+
+        text_list = text.split("\n")
+        text_list = [row for row in text_list if not all([item=="~" for item in row.split(" ")[1:]])]
+        text = "\n".join(text_list)
+
         text = text.replace("\n", " ")
         text_list = text.split(" ")
         text_list[+0] = self.BOS_TOKEN
         text_list[-1] = self.EOS_TOKEN
         text = " ".join(text_list)
+    
         return text
 
     def _batch_map_dataset(

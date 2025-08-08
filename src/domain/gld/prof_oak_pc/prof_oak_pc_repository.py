@@ -15,7 +15,7 @@ class ProfOakPcRepository(ABC):
     @abstractmethod
     def load(
         self,
-        box_name: str,
+        box_name: str | None = None,
     ) -> BoxEntity:
 
         NotImplementedError()

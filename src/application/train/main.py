@@ -6,7 +6,7 @@ def train_pokemons(
     profoakpc_repository: ProfOakPcRepository,
 ):
 
-    box_entity = profoakpc_repository.load(box_name="box-20250806-1843")
+    box_entity = profoakpc_repository.load()
 
     PokemonTrainer(box_entity).create_trainer().train()
 
