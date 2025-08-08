@@ -47,7 +47,7 @@ class PokemonTrainer:
     def __init__(
         self,
         box_entity: BoxEntity,
-        context_length=1024,
+        context_length=512,
     ):
 
         self._context_length = context_length
@@ -81,12 +81,10 @@ class PokemonTrainer:
         )
 
         # Crear vector de pesos para la pérdida
-        pad_token_id = self._tokenizer.convert_tokens_to_ids(
-            "~"
-        )  # token que quieres penalizar menos
-        weights = torch.ones(len(self._tokenizer))
-        weights[pad_token_id] = 0.5  # penalizar menos el token "~"
-        self._loss_weights = weights
+        #pad_token_id = self._tokenizer.convert_tokens_to_ids("~")
+        #weights = torch.ones(len(self._tokenizer))
+        #weights[pad_token_id] = 0.5  # penalizar menos el token "~"
+        #self._loss_weights = weights
 
     def create_trainer(self, **kwargs):
         model_dir = "/home/data/model"

@@ -21,7 +21,7 @@ class Pokenizer(object):
 
     def __init__(
         self,
-        sample_size: int = 1024,
+        sample_size: int = 512,
     ):
         """ """
 
@@ -40,6 +40,9 @@ class Pokenizer(object):
 
         text_list = text.split("\n")
         text_list = [row for row in text_list if not all([item=="~" for item in row.split(" ")[1:]])]
+        if len(text_list)>22:
+            return ""
+
         text = "\n".join(text_list)
 
         text = text.replace("\n", " ")
@@ -92,10 +95,10 @@ class Pokenizer(object):
     ):
         """ """
 
-        pokedex_list = pokedex_list.copy()
-
+        pokemon_data_list = []
         for pokedex_entity in pokedex_list:
-            pokedex_entity.data = self._preprocess_text(pokedex_entity.data)
+            if pokemon_data := self._preprocess_text(pokedex_entity.data):
+                pokemon_data_list.append(pokemon_data)
 
         tokenizer_trainer = BpeTrainer(
             show_progress=True,  # type: ignore
@@ -109,9 +112,9 @@ class Pokenizer(object):
         )
 
         self._tokenizer.train_from_iterator(
-            iterator=(pokedex.data for pokedex in pokedex_list),
+            iterator=(pokemon_data for pokemon_data in pokemon_data_list),
             trainer=tokenizer_trainer,
-            length=len(pokedex_list),
+            length=len(pokemon_data_list),
         )
 
         return self
@@ -123,19 +126,20 @@ class Pokenizer(object):
         """ """
 
         # Build th dataset
-        text_list = []
-        name_list = []
+        pokemon_data_list = []
+        pokemon_name_list = []
         for pokedex_entity in pokedex_list:
-            text_list.append(self._preprocess_text(pokedex_entity.data))
-            name_list.append(pokedex_entity.name)
+            if pokemon_data := self._preprocess_text(pokedex_entity.data):
+                pokemon_data_list.append(pokemon_data)
+                pokemon_name_list.append(pokedex_entity.name)
 
         dataset_dict = DatasetDict(
             {
                 "train": Dataset(
                     pa.Table.from_pydict(
                         {
-                            "name": name_list,
-                            "text": text_list,
+                            "name": pokemon_name_list,
+                            "text": pokemon_data_list,
                         }
                     )
                 ),
