@@ -12,6 +12,30 @@ from tokenizers.pre_tokenizers import WhitespaceSplit
 from src.domain.slv.pokedex import PokedexEntity
 
 
+
+def get_small_pokemon(text):
+    import numpy as np
+    new_array = [row.split(" ") for row in text.split("\n")]
+    new_array = np.array(new_array)[:,1:]
+    rows_to_keep = ~(new_array == '~').all(axis=1)
+    cols_to_keep = ~(new_array == '~').all(axis=0)
+    new_array = new_array[rows_to_keep][:, cols_to_keep]
+    if new_array.shape[0]>22 or new_array.shape[1]>22:
+        new_array = []
+    else:
+        padded = np.full((22, 22), "~", dtype=str)
+        row_size,col_size = new_array.shape
+        row_start = (22 - row_size) // 2
+        col_start = (22 - col_size) // 2
+        row_end = row_start+row_size
+        col_end = col_start+col_size
+        padded[row_start:row_end, col_start:col_end] = new_array
+        row_numbers = np.array([f"{i:02}" for i in range(22)]).reshape(22, 1)
+        padded_with_row_nums = np.hstack((row_numbers, padded))
+        new_array = padded_with_row_nums.tolist()
+    return "\n".join([" ".join(r) for i, r in enumerate(new_array)])
+
+
 class Pokenizer(object):
 
     BOS_TOKEN = "[BOS]"
@@ -38,18 +62,14 @@ class Pokenizer(object):
         text: str,
     ) -> str:
 
-        text_list = text.split("\n")
-        text_list = [row for row in text_list if not all([item=="~" for item in row.split(" ")[1:]])]
-        if len(text_list)>22:
-            return ""
+        text = get_small_pokemon(text)
 
-        text = "\n".join(text_list)
-
-        text = text.replace("\n", " ")
-        text_list = text.split(" ")
-        text_list[+0] = self.BOS_TOKEN
-        text_list[-1] = self.EOS_TOKEN
-        text = " ".join(text_list)
+        if text:
+            text = text.replace("\n", " ")
+            text_list = text.split(" ")
+            text_list[+0] = self.BOS_TOKEN
+            text_list[-1] = self.EOS_TOKEN
+            text = " ".join(text_list)
     
         return text
 

@@ -81,10 +81,10 @@ class PokemonTrainer:
         )
 
         # Crear vector de pesos para la pérdida
-        #pad_token_id = self._tokenizer.convert_tokens_to_ids("~")
-        #weights = torch.ones(len(self._tokenizer))
-        #weights[pad_token_id] = 0.5  # penalizar menos el token "~"
-        #self._loss_weights = weights
+        pad_token_id = self._tokenizer.convert_tokens_to_ids("~")
+        weights = torch.ones(len(self._tokenizer))
+        weights[pad_token_id] = 0.1  # penalizar menos el token "~"
+        self._loss_weights = weights
 
     def create_trainer(self, **kwargs):
         model_dir = "/home/data/model"
@@ -96,7 +96,7 @@ class PokemonTrainer:
             "per_device_eval_batch_size": 1,
             "logging_steps": 5_000,
             "gradient_accumulation_steps": 8,
-            "num_train_epochs": 3,
+            "num_train_epochs": 300,
             "weight_decay": 0.1,
             "warmup_steps": 1_000,
             "lr_scheduler_type": "cosine",
@@ -109,14 +109,14 @@ class PokemonTrainer:
         default_args.update(kwargs)
         trainer_args = TrainingArguments(**default_args)
 
-        trainer = Trainer(
+        trainer = WeightedLossTrainer(
             model=self._model,
             processing_class=self._tokenizer,
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
             callbacks=[InferenceCallback(self._tokenizer, interval_steps=10)],
-            # loss_weights=self._loss_weights,
+            loss_weights=self._loss_weights,
         )
 
         return trainer
