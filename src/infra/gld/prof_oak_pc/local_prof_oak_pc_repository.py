@@ -5,7 +5,6 @@ from src.domain.gld.prof_oak_pc import BoxEntity
 from src.domain.gld.prof_oak_pc import ProfOakPcRepository
 
 
-
 class LocalProfOakPcRepository(ProfOakPcRepository):
 
     source_dir = f"/home/data/gld/prof_oak_pc"

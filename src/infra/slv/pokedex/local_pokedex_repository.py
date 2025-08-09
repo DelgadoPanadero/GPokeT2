@@ -6,7 +6,7 @@ from src.domain.slv.pokedex import PokedexRepository
 
 class LocalPokedexRepository(PokedexRepository):
 
-    source_dir = "/home/data/slv/pokedex"
+    source_dir = "/home/data/slv/pokedex_test"
 
     def load_one(
         self,

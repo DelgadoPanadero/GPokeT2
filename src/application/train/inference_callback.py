@@ -10,13 +10,11 @@ class InferenceCallback(TrainerCallback):
         self,
         tokenizer,
         interval_steps=5000,
-        prompt="[BOS]",
-        max_length=1024,
+        context_length=1024,
     ):
         self.interval_steps = interval_steps
         self.tokenizer = tokenizer
-        self.prompt = prompt
-        self.max_length = max_length
+        self.context_length = context_length
 
     def on_step_end(
         self,
@@ -32,20 +30,26 @@ class InferenceCallback(TrainerCallback):
             model = kwargs["model"]
             device = next(model.parameters()).device
 
-            inputs = self.tokenizer(self.prompt, return_tensors="pt").to(device)
+            inputs = self.tokenizer("[BOS]", return_tensors="pt").to(device)
             model.eval()
-            with torch.no_grad():
-                output = model.generate(
-                    **inputs,
-                    max_length=self.max_length,
-                    min_length=self.max_length,
-                    do_sample=True,
-                    top_k=50,
-                    top_p=0.95,
-                    temperature=0.9,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    eos_token_id=self.tokenizer.eos_token_id,
-                )
+
+            def run(inputs=inputs):
+                with torch.no_grad():
+                    output = model.generate(
+                        **inputs,
+                        max_length=self.context_length,
+                        min_length=self.context_length,
+                        do_sample=True,
+                        top_k=50,
+                        top_p=0.95,
+                        temperature=0.9,
+                        pad_token_id=self.tokenizer.pad_token_id,
+                        eos_token_id=self.tokenizer.eos_token_id,
+                    )
+                return output
+            
+            output = run(inputs=inputs)
+
             decoded = self.tokenizer.decode(output[0], skip_special_tokens=True)
             print(f"\n\n=== Inference @ step {state.global_step} ===")
             print(decoded)

@@ -27,7 +27,12 @@ class WeightedLossTrainer(Trainer):
         self.loss_weights = loss_weights
 
     def compute_loss(  # type: ignore
-        self, model, inputs, return_outputs=False, *, num_items_in_batch=None
+        self,
+        model,
+        inputs,
+        return_outputs=False,
+        *,
+        num_items_in_batch=None,
     ):
 
         labels = inputs.get("labels")
@@ -47,7 +52,7 @@ class PokemonTrainer:
     def __init__(
         self,
         box_entity: BoxEntity,
-        context_length=512,
+        context_length=64,
     ):
 
         self._context_length = context_length
@@ -109,14 +114,20 @@ class PokemonTrainer:
         default_args.update(kwargs)
         trainer_args = TrainingArguments(**default_args)
 
-        trainer = WeightedLossTrainer(
+        trainer = Trainer(
             model=self._model,
             processing_class=self._tokenizer,
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
-            callbacks=[InferenceCallback(self._tokenizer, interval_steps=10)],
-            loss_weights=self._loss_weights,
+            callbacks=[
+                InferenceCallback(
+                    self._tokenizer,
+                    interval_steps=10,
+                    context_length=self._context_length,
+                )
+            ],
+            # loss_weights=self._loss_weights,
         )
 
         return trainer

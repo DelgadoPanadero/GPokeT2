@@ -12,23 +12,23 @@ from tokenizers.pre_tokenizers import WhitespaceSplit
 from src.domain.slv.pokedex import PokedexEntity
 
 
-
 def get_small_pokemon(text):
     import numpy as np
+
     new_array = [row.split(" ") for row in text.split("\n")]
-    new_array = np.array(new_array)[:,1:]
-    rows_to_keep = ~(new_array == '~').all(axis=1)
-    cols_to_keep = ~(new_array == '~').all(axis=0)
+    new_array = np.array(new_array)[:, 1:]
+    rows_to_keep = ~(new_array == "~").all(axis=1)
+    cols_to_keep = ~(new_array == "~").all(axis=0)
     new_array = new_array[rows_to_keep][:, cols_to_keep]
-    if new_array.shape[0]>22 or new_array.shape[1]>22:
+    if new_array.shape[0] > 22 or new_array.shape[1] > 22:
         new_array = []
     else:
         padded = np.full((22, 22), "~", dtype=str)
-        row_size,col_size = new_array.shape
+        row_size, col_size = new_array.shape
         row_start = (22 - row_size) // 2
         col_start = (22 - col_size) // 2
-        row_end = row_start+row_size
-        col_end = col_start+col_size
+        row_end = row_start + row_size
+        col_end = col_start + col_size
         padded[row_start:row_end, col_start:col_end] = new_array
         row_numbers = np.array([f"{i:02}" for i in range(22)]).reshape(22, 1)
         padded_with_row_nums = np.hstack((row_numbers, padded))
@@ -45,11 +45,12 @@ class Pokenizer(object):
 
     def __init__(
         self,
-        sample_size: int = 512,
+
+        context_length: int = 64,
     ):
         """ """
 
-        self.sample_size = sample_size
+        self.context_length = context_length
         self._tokenizer = Tokenizer(BPE())
         self._tokenizer.normalizer = NFKC()  # type: ignore
         self._tokenizer.pre_tokenizer = WhitespaceSplit()  # type: ignore
@@ -62,7 +63,7 @@ class Pokenizer(object):
         text: str,
     ) -> str:
 
-        text = get_small_pokemon(text)
+        # text = get_small_pokemon(text)
 
         if text:
             text = text.replace("\n", " ")
@@ -70,7 +71,7 @@ class Pokenizer(object):
             text_list[+0] = self.BOS_TOKEN
             text_list[-1] = self.EOS_TOKEN
             text = " ".join(text_list)
-    
+
         return text
 
     def _batch_map_dataset(
@@ -87,20 +88,26 @@ class Pokenizer(object):
             text_batches = []
             text_splitted = text.split(" ")
 
-            for i in range(0, len(text_splitted), self.sample_size):
-                sub_text = text_splitted[i : i + self.sample_size]
+            for i in range(0, len(text_splitted), self.context_length):
+                sub_text = text_splitted[i : i + self.context_length]
                 sub_text += [self.EOS_TOKEN] * (
-                    self.sample_size - len(sub_text)
+                    self.context_length - len(sub_text)
                 )
                 text_batch = " ".join(sub_text)
                 text_batches.append(text_batch)
 
             for text_batch in text_batches:
                 encoding = self._tokenizer.encode(text_batch)
+                #all_attention_masks.append(encoding.attention_mask)
+                all_attention_masks.append(
+                    [
+                        1 if (i % 8) == 0 else 0.3
+                        for i in range(len(encoding.ids))
+                    ]
+                )
                 all_input_ids.append(encoding.ids)
-                all_attention_masks.append(encoding.attention_mask)
-                all_names.append(name)
                 all_texts.append(text_batch)
+                all_names.append(name)
 
         return {
             "name": all_names,
