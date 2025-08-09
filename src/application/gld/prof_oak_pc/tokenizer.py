@@ -45,7 +45,7 @@ class Pokenizer(object):
 
     def __init__(
         self,
-        context_length: int = 64,
+        context_length: int = 1024,
     ):
         """ """
 
@@ -64,12 +64,14 @@ class Pokenizer(object):
 
         # text = get_small_pokemon(text)
 
-        if text:
-            text = text.replace("\n", " ")
-            text_list = text.split(" ")
-            text_list[+0] = self.BOS_TOKEN
-            text_list[-1] = self.EOS_TOKEN
-            text = " ".join(text_list)
+        text_array = [["00"] + row.split(" ")[:-1] for row in text.split("\n")]
+        text = "\n".join([" ".join(r) for i, r in enumerate(text_array)])
+
+        text = text.replace("\n", " ")
+        text_list = text.split(" ")
+        text_list[+0] = self.BOS_TOKEN
+        text_list[-1] = self.EOS_TOKEN
+        text = " ".join(text_list)
 
         return text
 
@@ -97,11 +99,10 @@ class Pokenizer(object):
 
             for text_batch in text_batches:
                 encoding = self._tokenizer.encode(text_batch)
-                # all_attention_masks.append(encoding.attention_mask)
                 all_attention_masks.append(
                     [
-                        1 if (i % 8) == 0 else 0.3
-                        for i in range(len(encoding.ids))
+                        1 if (i % 64) == 0 else 0.3
+                        for i in range(len(encoding.attention_mask))
                     ]
                 )
                 all_input_ids.append(encoding.ids)
