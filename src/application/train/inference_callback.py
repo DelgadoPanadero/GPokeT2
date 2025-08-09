@@ -47,7 +47,7 @@ class InferenceCallback(TrainerCallback):
                         eos_token_id=self.tokenizer.eos_token_id,
                     )
                 return output
-            
+
             output = run(inputs=inputs)
 
             decoded = self.tokenizer.decode(output[0], skip_special_tokens=True)

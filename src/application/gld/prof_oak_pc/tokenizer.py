@@ -45,7 +45,6 @@ class Pokenizer(object):
 
     def __init__(
         self,
-
         context_length: int = 64,
     ):
         """ """
@@ -98,7 +97,7 @@ class Pokenizer(object):
 
             for text_batch in text_batches:
                 encoding = self._tokenizer.encode(text_batch)
-                #all_attention_masks.append(encoding.attention_mask)
+                # all_attention_masks.append(encoding.attention_mask)
                 all_attention_masks.append(
                     [
                         1 if (i % 8) == 0 else 0.3
