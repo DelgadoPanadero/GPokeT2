@@ -15,24 +15,11 @@ from src.domain.slv.pokedex import PokedexEntity
 def get_small_pokemon(text):
     import numpy as np
 
-    new_array = [row.split(" ") for row in text.split("\n")]
-    new_array = np.array(new_array)[:, 1:]
+    new_array = [["00"]+row.split(" ")[0:-1] for row in text.split("\n")]
+    new_array = np.array(new_array)
     rows_to_keep = ~(new_array == "~").all(axis=1)
     cols_to_keep = ~(new_array == "~").all(axis=0)
-    new_array = new_array[rows_to_keep][:, cols_to_keep]
-    if new_array.shape[0] > 22 or new_array.shape[1] > 22:
-        new_array = []
-    else:
-        padded = np.full((22, 22), "~", dtype=str)
-        row_size, col_size = new_array.shape
-        row_start = (22 - row_size) // 2
-        col_start = (22 - col_size) // 2
-        row_end = row_start + row_size
-        col_end = col_start + col_size
-        padded[row_start:row_end, col_start:col_end] = new_array
-        row_numbers = np.array([f"{i:02}" for i in range(22)]).reshape(22, 1)
-        padded_with_row_nums = np.hstack((row_numbers, padded))
-        new_array = padded_with_row_nums.tolist()
+    new_array = new_array[rows_to_keep][:, cols_to_keep].tolist()
     return "\n".join([" ".join(r) for i, r in enumerate(new_array)])
 
 
@@ -64,8 +51,7 @@ class Pokenizer(object):
 
         # text = get_small_pokemon(text)
 
-        text_array = [["00"] + row.split(" ")[:-1] for row in text.split("\n")]
-        text = "\n".join([" ".join(r) for i, r in enumerate(text_array)])
+        text = get_small_pokemon(text)
 
         text = text.replace("\n", " ")
         text_list = text.split(" ")
@@ -91,7 +77,7 @@ class Pokenizer(object):
 
             for i in range(0, len(text_splitted), self.context_length):
                 sub_text = text_splitted[i : i + self.context_length]
-                sub_text += [self.EOS_TOKEN] * (
+                sub_text += [self.PAD_TOKEN] * (
                     self.context_length - len(sub_text)
                 )
                 text_batch = " ".join(sub_text)

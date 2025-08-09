@@ -52,7 +52,7 @@ class PokemonTrainer:
     def __init__(
         self,
         box_entity: BoxEntity,
-        context_length=64,
+        context_length=1024,
     ):
 
         self._context_length = context_length
@@ -105,7 +105,7 @@ class PokemonTrainer:
             "per_device_train_batch_size": 10,
             "logging_steps": 10,
             "gradient_accumulation_steps": 1,
-            "num_train_epochs": 300,
+            "num_train_epochs": 5,
             "weight_decay": 0.1,
             #"warmup_steps": 1_000,
             "lr_scheduler_type": "cosine",
