@@ -39,7 +39,9 @@ class WeightedLossTrainer(Trainer):
         outputs = model(**inputs)
         logits = outputs.get("logits")
 
-        loss_fct = torch.nn.CrossEntropyLoss(weight=self.loss_weights.to(logits.device),)  # type: ignore
+        loss_fct = torch.nn.CrossEntropyLoss(
+            weight=self.loss_weights.to(logits.device),
+        )  # type: ignore
         loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
 
         return (loss, outputs) if return_outputs else loss
@@ -87,12 +89,10 @@ class PokemonTrainer:
 
         # Crear vector de pesos para la pérdida
         weights = torch.ones(len(self._tokenizer))
-        weights[
-            self._tokenizer.convert_tokens_to_ids("~")
-        ] = 0.5
-        weights[
-            self._tokenizer.convert_tokens_to_ids("00")
-        ] = 10  # penalizar menos el token "~"
+        weights[self._tokenizer.convert_tokens_to_ids("~")] = 0.5
+        weights[self._tokenizer.convert_tokens_to_ids("00")] = (
+            10  # penalizar menos el token "~"
+        )
 
         self._loss_weights = weights
 
@@ -107,7 +107,7 @@ class PokemonTrainer:
             "gradient_accumulation_steps": 1,
             "num_train_epochs": 5,
             "weight_decay": 0.1,
-            #"warmup_steps": 1_000,
+            # "warmup_steps": 1_000,
             "lr_scheduler_type": "cosine",
             "learning_rate": 5e-4,
             "save_steps": 5_000,
@@ -131,7 +131,7 @@ class PokemonTrainer:
                     context_length=self._context_length,
                 )
             ],
-            #loss_weights=self._loss_weights,
+            # loss_weights=self._loss_weights,
         )
 
         return trainer
