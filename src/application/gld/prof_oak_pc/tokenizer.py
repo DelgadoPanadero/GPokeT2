@@ -29,7 +29,7 @@ class Pokenizer:
 
     def __init__(
         self,
-        token_size: int = 10,
+        token_size: int = 4,
         context_length: int = 1024,
     ):
         """
