@@ -12,7 +12,7 @@ def get_pokedex(
 
     pokedex_list = []
     for pokemon_item in pokemon_list:
-        pokedex_list += PokemonEncoder().run(pokemon_item)
+        pokedex_list.append(PokemonEncoder().run(pokemon_item))
 
     pokedex_repository.save_all(pokedex_list)
 

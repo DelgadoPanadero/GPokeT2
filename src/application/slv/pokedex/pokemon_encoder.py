@@ -47,36 +47,18 @@ class PokemonEncoder:
     ) -> str:
         return "\n".join([" ".join(r) for i, r in enumerate(array)])
 
-    @classmethod
-    def _augmentation(cls, array):
-        """ """
-
-        batch = {}
-        batch["original"] = array
-        batch["fliped"] = [row[0:1] + row[:0:-1] for row in array]
-        # TODO color transformation
-
-        return batch
-
     def run(
         self,
         pokemon: PokemonEntity,
-    ) -> list[PokedexEntity]:
+    ) -> PokedexEntity:
 
         image = pokemon.image
 
-        array = self._encode(image)
-        batch = self._augmentation(array)
+        pokedex_data_array = self._encode(image)
 
-        result = []
-        for name, array in batch.items():
-            pokedex_name = pokemon.name.replace(".png", f"_{name}.txt")
-            pokedex_data = self._array_to_text(array)
-            result.append(
-                PokedexEntity(
-                    name=pokedex_name,
-                    data=pokedex_data,
-                ),
-            )
+        pokedex_data_text = self._array_to_text(pokedex_data_array)
 
-        return result
+        return PokedexEntity(
+            name=pokemon.name.replace(".png", ".txt"),
+            data=pokedex_data_text,
+        )

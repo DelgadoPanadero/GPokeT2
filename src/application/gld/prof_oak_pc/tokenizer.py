@@ -3,8 +3,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pyarrow as pa
-from datasets import Dataset
-from datasets import DatasetDict
+from datasets import Dataset, DatasetDict
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.normalizers import NFKC
@@ -29,29 +28,15 @@ class Pokenizer:
 
     def __init__(
         self,
-        token_size: int = 4,
-        context_length: int = 1024,
+        context_length: int = 64,
     ):
         """
         Inicializa el tokenizador con las configuraciones base.
         """
-
-        self._token_size = token_size
         self.context_length = context_length
-
         self._tokenizer = Tokenizer(BPE())
         self._tokenizer.pre_tokenizer = WhitespaceSplit()  # type: ignore
         self._tokenizer.normalizer = NFKC()  # type: ignore
-
-        # self.tokenizer = PreTrainedTokenizerFast(
-        #    tokenizer_object=self._tokenizer,
-        #    bos_token=self.BOS_TOKEN,
-        #    eos_token=self.EOS_TOKEN,
-        #    unk_token=self.UNK_TOKEN,
-        #    pad_token=self.PAD_TOKEN,
-        #    model_max_length=self.context_length,
-        #    max_token_length=1,
-        # )
 
     def to_dict(self) -> dict:
         """
@@ -59,39 +44,29 @@ class Pokenizer:
         """
         return json.loads(self._tokenizer.to_str())
 
-    def _clean_text(self, text: str) -> str:
+    def _clean_text(
+        self,
+        text: str,
+    ) -> str:
         """
         Limpia el texto de los datos de Pokémon antes de la tokenización.
         """
 
-        # Eliminamos filas y columnas vacias
-        text_split = np.array([row.split(" ") for row in text.split("\n")])
-        text_array = np.array(text_split, dtype="<U6")
+        # Eliminamos filas y columnas vacías
+        text_list = [row.split(" ") for row in text.split("\n")]
+        text_array = np.array(text_list, dtype="<U6")
         rows_to_keep = ~(text_array == "~").all(axis=1)
         cols_to_keep = ~(text_array == "~").all(axis=0)
         text_array = text_array[rows_to_keep, :][:, cols_to_keep]
 
-        # Agrupamos múltiples caracteres en _token_size
-        text_split = [
-            [
-                "".join(
-                    (row + ["~"] * self._token_size)[i : i + self._token_size]
-                )
-                for i in range(0, len(row), self._token_size)
-            ]
-            for row in text_array.tolist()
-        ]
+        # Añadimos caracteres especiales
+        text_list = text_array.tolist()
+        text_list = [["00"] + row for row in text_list]
+        # text_list[0][0] = self.BOS_TOKEN
+        text_list[-1][-1] = self.EOS_TOKEN
 
-        # Añadimos caracteres especiales. Lo hacemos aqui porque seguimos un
-        # criterio que se sale del standard de los tokenizadores de HF
-        text_split = [["00"] + row for row in text_split]
-        text_split[0][0] = self.BOS_TOKEN
-        text_split[-1][-1] = self.EOS_TOKEN
-
-        # Convertirmos el texto a string
-        text = "\n".join([" ".join(row) for row in text_split])
-        text = text.replace("\n", " ")
-
+        # Convertimos a string
+        text = " ".join([" ".join(row) for row in text_list])
         return text
 
     def train(
@@ -99,8 +74,7 @@ class Pokenizer:
         pokedex_list: list[PokedexEntity],
     ):
         """
-        Entrena el tokenizador BPE, configurando el post-procesador y
-        limitando la longitud de los tokens.
+        Entrena el tokenizador BPE.
         """
 
         pokemon_data_list = [
@@ -110,7 +84,7 @@ class Pokenizer:
         ]
 
         trainer = BpeTrainer(
-            max_token_length=self._token_size,  # type: ignore
+            max_token_length=self.context_length,  # type: ignore
             special_tokens=[  # type: ignore
                 self.BOS_TOKEN,
                 self.EOS_TOKEN,
@@ -128,43 +102,63 @@ class Pokenizer:
 
         return self
 
-    def _tokenize_function(
-        self,
-        batch,
-    ) -> dict:
+    def _make_chunk_pairs(self, text: str) -> list[tuple[str, str]]:
+        """
+        Genera pares (input_chunk, label_chunk) a partir de un texto.
+        El primer input es [BOS], el label es el primer chunk real.
+        """
+        text_list = text.split(" ")
+        chunks = [
+            " ".join(text_list[i : i + self.context_length])
+            for i in range(0, len(text_list), self.context_length)
+        ]
 
-        all_names = []
-        all_texts = []
-        all_input_ids = []
-        all_attention_masks = []
-        for text, name in zip(batch["text"], batch["name"]):
+        pairs = []
+        prev_chunk = self.BOS_TOKEN
+        for current_chunk in chunks:
+            pairs.append((prev_chunk, current_chunk))
+            prev_chunk = current_chunk
 
-            text_splitted = text.split(" ")
-            for i in range(0, len(text_splitted), self.context_length):
+        return pairs
 
-                text_chuncked_list = (
-                    text_splitted[i : i + self.context_length]
-                    + [self.PAD_TOKEN] * self.context_length
-                )[0 : self.context_length]
+    def _tokenize_function(self, batch) -> dict:
 
-                text_chunked = " ".join(text_chuncked_list)
-                encoding = self._tokenizer.encode(text_chunked)
+        inputs_encoding = self._tokenizer.encode_batch(
+            batch["input_text"],
+            add_special_tokens=False,
+        )
 
-                all_names.append(name)
-                all_texts.append(text_chunked)
-                all_input_ids.append(encoding.ids)
-                all_attention_masks.append([
-                    1.0 if i == self._tokenizer.token_to_id(self.EOL_TOKEN) else
-                    0.1 if i != self._tokenizer.token_to_id(self.BCK_TOKEN) else
-                    0.3 for i in encoding.ids
-                ])
+        labels_encoding = self._tokenizer.encode_batch(
+            batch["label_text"],
+            add_special_tokens=False,
+        )
 
+        eol_token_id = self._tokenizer.token_to_id(self.EOL_TOKEN)
+        bck_token_id = self._tokenizer.token_to_id(self.BCK_TOKEN)
+        pad_token_id = self._tokenizer.token_to_id(self.PAD_TOKEN)
+
+        attention_masks = [
+            [
+                (
+                    1.0 if token_id == eol_token_id else
+                    0.1 if token_id != bck_token_id else
+                    0.3
+                )
+                for token_id in encoding.ids
+            ]
+            for encoding in inputs_encoding
+        ]
+
+        def pad(ids):
+            return (
+                ids + [pad_token_id] * (self.context_length - len(ids))
+            )
 
         return {
-            "name": all_names,
-            "text": all_texts,
-            "input_ids": all_input_ids,
-            "attention_mask": all_attention_masks,
+            "name": batch["name"],
+            "attention_mask": attention_masks,
+            "input_ids": [pad(encoding.ids) for encoding in inputs_encoding],
+            "labels": [pad(encoding.ids) for encoding in labels_encoding],
         }
 
     def tokenize(
@@ -172,29 +166,34 @@ class Pokenizer:
         pokedex_list: list[PokedexEntity],
     ) -> DatasetDict:
         """
-        Tokeniza el dataset de Pokémon, aplicando la máscara de atención
-        personalizada.
+        Tokeniza el dataset de Pokémon, generando pares input-label.
         """
+
+        names = []
+        input_texts = []
+        label_texts = []
+        for pokedex_entity in pokedex_list:
+            if not pokedex_entity.data:
+                continue
+
+            clean_text = self._clean_text(pokedex_entity.data)
+            pairs = self._make_chunk_pairs(clean_text)
+
+            for prev, curr in pairs:
+                names.append(pokedex_entity.name)
+                input_texts.append(prev)
+                label_texts.append(curr)
 
         raw_dataset = Dataset.from_dict(
             {
-                "name": [
-                    pokedex_entity.name
-                    for pokedex_entity in pokedex_list
-                    if pokedex_entity.data
-                ],
-                "text": [
-                    self._clean_text(pokedex_entity.data)
-                    for pokedex_entity in pokedex_list
-                    if pokedex_entity.data
-                ],
+                "name": names,
+                "input_text": input_texts,
+                "label_text": label_texts,
             }
         )
 
         tokenized_dataset = raw_dataset.map(
-            self._tokenize_function,
-            batched=True,
-            remove_columns=["text"],
+            self._tokenize_function, batched=True
         )
 
         return DatasetDict({"train": tokenized_dataset})

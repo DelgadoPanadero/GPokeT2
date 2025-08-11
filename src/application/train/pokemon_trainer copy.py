@@ -1,15 +1,50 @@
 import os
 import json
+
 import torch
 from tokenizers import Tokenizer
-from transformers import Trainer
+from transformers import Trainer  # type: ignore
 from transformers import AutoConfig
 from transformers import GPT2LMHeadModel
-from transformers import TrainingArguments
-from transformers import PreTrainedTokenizerFast
-from transformers import default_data_collator
+from transformers import TrainingArguments  # type: ignore
+from transformers import PreTrainedTokenizerFast  # type: ignore
+from transformers import DataCollatorForLanguageModeling  # type: ignore
+
 from .inference_callback import InferenceCallback
 from src.domain.gld.prof_oak_pc import BoxEntity
+
+
+class WeightedLossTrainer(Trainer):
+
+    def __init__(
+        self,
+        *args,
+        loss_weights=None,
+        **kwargs,
+    ):
+
+        super().__init__(*args, **kwargs)
+        self.loss_weights = loss_weights
+
+    def compute_loss(  # type: ignore
+        self,
+        model,
+        inputs,
+        return_outputs=False,
+        *,
+        num_items_in_batch=None,
+    ):
+
+        labels = inputs.get("labels")
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+
+        loss_fct = torch.nn.CrossEntropyLoss(
+            weight=self.loss_weights.to(logits.device),
+        )  # type: ignore
+        loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
+
+        return (loss, outputs) if return_outputs else loss
 
 
 class PokemonTrainer:
@@ -19,7 +54,7 @@ class PokemonTrainer:
     def __init__(
         self,
         box_entity: BoxEntity,
-        context_length=64,
+        context_length=1024,
     ):
 
         self._context_length = context_length
@@ -27,7 +62,6 @@ class PokemonTrainer:
         tokenizer_object = Tokenizer.from_str(
             json.dumps(box_entity.tokenizer, ensure_ascii=False),
         )
-
         self._tokenizer = PreTrainedTokenizerFast(
             tokenizer_object=tokenizer_object,
             bos_token="[BOS]",
@@ -36,11 +70,12 @@ class PokemonTrainer:
             pad_token="[PAD]",
         )
 
-        # Dataset ya tokenizado
         self._dataset = box_entity.dataset
 
-        # Collator que no altera nada, solo agrupa en batch
-        self._data_collator = default_data_collator
+        self._data_collator = DataCollatorForLanguageModeling(
+            tokenizer=self._tokenizer,
+            mlm=False,
+        )
 
         self._model = GPT2LMHeadModel(
             AutoConfig.from_pretrained(
@@ -49,9 +84,17 @@ class PokemonTrainer:
                 n_ctx=self._context_length,
                 bos_token_id=self._tokenizer.bos_token_id,
                 eos_token_id=self._tokenizer.eos_token_id,
-                pad_token_id=self._tokenizer.pad_token_id,
             )
         )
+
+        # Crear vector de pesos para la pérdida
+        weights = torch.ones(len(self._tokenizer))
+        weights[self._tokenizer.convert_tokens_to_ids("~")] = 0.5
+        weights[self._tokenizer.convert_tokens_to_ids("00")] = (
+            10  # penalizar menos el token "~"
+        )
+
+        self._loss_weights = weights
 
     def create_trainer(self, **kwargs):
         model_dir = "/home/data/model"
@@ -64,6 +107,7 @@ class PokemonTrainer:
             "gradient_accumulation_steps": 1,
             "num_train_epochs": 5,
             "weight_decay": 0.1,
+            # "warmup_steps": 1_000,
             "lr_scheduler_type": "cosine",
             "learning_rate": 5e-4,
             "save_steps": 5_000,
@@ -87,6 +131,7 @@ class PokemonTrainer:
                     context_length=self._context_length,
                 )
             ],
+            # loss_weights=self._loss_weights,
         )
 
         return trainer
