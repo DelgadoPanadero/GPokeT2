@@ -123,42 +123,47 @@ class Pokenizer:
 
     def _tokenize_function(self, batch) -> dict:
 
-        inputs_encoding = self._tokenizer.encode_batch(
-            batch["input_text"],
-            add_special_tokens=False,
-        )
-
-        labels_encoding = self._tokenizer.encode_batch(
-            batch["label_text"],
-            add_special_tokens=False,
-        )
-
         eol_token_id = self._tokenizer.token_to_id(self.EOL_TOKEN)
         bck_token_id = self._tokenizer.token_to_id(self.BCK_TOKEN)
         pad_token_id = self._tokenizer.token_to_id(self.PAD_TOKEN)
+
+        def pad(ids):
+            return ids + [pad_token_id] * (self.context_length - len(ids))
+
+        inputs_encoding: list[list[int]] = [
+            pad(encoding.ids)
+            for encoding in self._tokenizer.encode_batch(
+                batch["input_text"],
+                add_special_tokens=False,
+            )
+        ]
+
+        labels_encoding: list[list[int]] = [
+            pad(encoding.ids)
+            for encoding in self._tokenizer.encode_batch(
+                batch["label_text"],
+                add_special_tokens=False,
+            )
+        ]
 
         attention_masks = [
             [
                 (
                     1.0 if token_id == eol_token_id else
-                    0.1 if token_id != bck_token_id else
+                    0.1 if token_id == bck_token_id else
+                    0.0 if token_id == pad_token_id else
                     0.3
                 )
-                for token_id in encoding.ids
+                for token_id in encoding
             ]
             for encoding in inputs_encoding
         ]
 
-        def pad(ids):
-            return (
-                ids + [pad_token_id] * (self.context_length - len(ids))
-            )
-
         return {
             "name": batch["name"],
             "attention_mask": attention_masks,
-            "input_ids": [pad(encoding.ids) for encoding in inputs_encoding],
-            "labels": [pad(encoding.ids) for encoding in labels_encoding],
+            "input_ids": inputs_encoding,
+            "labels": labels_encoding,
         }
 
     def tokenize(

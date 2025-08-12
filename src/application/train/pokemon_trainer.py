@@ -40,7 +40,9 @@ class PokemonTrainer:
         self._dataset = box_entity.dataset
 
         # Collator que no altera nada, solo agrupa en batch
-        self._data_collator = default_data_collator
+        from transformers import DataCollatorWithPadding
+
+        self._data_collator = DataCollatorWithPadding(tokenizer=self._tokenizer)
 
         self._model = GPT2LMHeadModel(
             AutoConfig.from_pretrained(
@@ -76,7 +78,7 @@ class PokemonTrainer:
 
         trainer = Trainer(
             model=self._model,
-            processing_class=self._tokenizer,
+            tokenizer=self._tokenizer,  # Fixed argument name
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],
