@@ -7,7 +7,7 @@ from transformers import AutoConfig
 from transformers import GPT2LMHeadModel
 from transformers import TrainingArguments
 from transformers import PreTrainedTokenizerFast
-from transformers import default_data_collator
+from transformers import DataCollatorWithPadding
 from .inference_callback import InferenceCallback
 from src.domain.gld.prof_oak_pc import BoxEntity
 
@@ -36,13 +36,12 @@ class PokemonTrainer:
             pad_token="[PAD]",
         )
 
-        # Dataset ya tokenizado
         self._dataset = box_entity.dataset
 
-        # Collator que no altera nada, solo agrupa en batch
-        from transformers import DataCollatorWithPadding
-
-        self._data_collator = DataCollatorWithPadding(tokenizer=self._tokenizer)
+        self._data_collator = DataCollatorWithPadding(
+            tokenizer=self._tokenizer,
+            padding=False,
+        )
 
         self._model = GPT2LMHeadModel(
             AutoConfig.from_pretrained(
@@ -64,7 +63,7 @@ class PokemonTrainer:
             "per_device_train_batch_size": 10,
             "logging_steps": 10,
             "gradient_accumulation_steps": 1,
-            "num_train_epochs": 5,
+            "num_train_epochs": 50,
             "weight_decay": 0.1,
             "lr_scheduler_type": "cosine",
             "learning_rate": 5e-4,
@@ -78,7 +77,7 @@ class PokemonTrainer:
 
         trainer = Trainer(
             model=self._model,
-            tokenizer=self._tokenizer,  # Fixed argument name
+            processing_class=self._tokenizer,
             args=trainer_args,
             data_collator=self._data_collator,
             train_dataset=self._dataset["train"],

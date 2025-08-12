@@ -102,14 +102,14 @@ class PokemonTrainer:
 
         default_args = {
             "output_dir": model_dir,
-            "per_device_train_batch_size": 10,
+            "per_device_train_batch_size": 4,
             "logging_steps": 10,
-            "gradient_accumulation_steps": 1,
+            "gradient_accumulation_steps": 4,
             "num_train_epochs": 5,
             "weight_decay": 0.1,
-            # "warmup_steps": 1_000,
+            "warmup_steps": 1_000,
             "lr_scheduler_type": "cosine",
-            "learning_rate": 5e-4,
+            "learning_rate": 1e-5,
             "save_steps": 5_000,
             "fp16": torch.cuda.is_available(),
             "dataloader_pin_memory": torch.cuda.is_available(),
