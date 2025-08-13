@@ -1,30 +1,22 @@
 import torch
-import logging
 
 from transformers import TrainerState
 from transformers import TrainerControl
 from transformers import TrainerCallback
 
-logger = logging.getLogger(__name__)
 
 class InferenceCallback(TrainerCallback):
-
     def __init__(
         self,
         tokenizer,
         interval_steps=5000,
+        row_length=64,
         context_length=1024,
     ):
-        super().__init__()
         self.interval_steps = interval_steps
         self.tokenizer = tokenizer
+        self.row_length = row_length
         self.context_length = context_length
-
-        # Crear input_ids una vez
-        input_text = self.tokenizer.bos_token or "[BOS]"
-        encoding = self.tokenizer(input_text, return_tensors="pt")
-        self.input_ids = encoding["input_ids"]
-        self.attention_mask = encoding.get("attention_mask", None)
 
     def on_step_end(
         self,
@@ -32,25 +24,22 @@ class InferenceCallback(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         **kwargs,
-    ) -> TrainerControl:
-
-        if state.global_step > 0 and state.global_step % self.interval_steps == 0:
+    ):
+        if (
+            state.global_step % self.interval_steps == 0
+            and state.global_step > 0
+        ):
             model = kwargs["model"]
             device = next(model.parameters()).device
 
+            inputs = self.tokenizer("[BOS]", return_tensors="pt").to(device)
             model.eval()
 
-            try:
-                inputs = {
-                    "input_ids": self.input_ids.to(device),
-                }
-                if self.attention_mask is not None:
-                    inputs["attention_mask"] = self.attention_mask.to(device)
-
+            def run(inputs=inputs):
                 with torch.no_grad():
                     output = model.generate(
                         **inputs,
-                        max_length=self.context_length,  # margen extra
+                        max_length=self.context_length,
                         min_length=self.context_length,
                         do_sample=True,
                         top_k=50,
@@ -59,15 +48,21 @@ class InferenceCallback(TrainerCallback):
                         pad_token_id=self.tokenizer.pad_token_id,
                         eos_token_id=self.tokenizer.eos_token_id,
                     )
-                decoded = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                return output
 
-                logger.info(f"\n\n=== Inference @ step {state.global_step} ===")
-                logger.info(decoded)
-                logger.info("====================================\n\n")
+            output = run(inputs=inputs)
 
-            except Exception as e:
-                logger.warning(f"Inference generation failed at step {state.global_step}: {e}")
+            decoded = self.tokenizer.decode(output[0], skip_special_tokens=False)
+            print(f"\n\n=== Inference @ step {state.global_step} ===")
 
-            model.train()
+            try:
+                print("\n".join([
+                    " ".join(decoded.split(" ")[i:i+self.row_length])
+                    for i in range(0,self.context_length,self.row_length)
+                ]))
+
+            except:
+                print(decoded)
+            print("====================================\n\n")
 
         return control

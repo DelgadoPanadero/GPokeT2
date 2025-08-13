@@ -20,32 +20,45 @@ class Pokenizer:
 
     def __init__(
         self,
-        token_size: int = 1,
-        context_length: int = 32,
-        overlap_rows: int = 3,
-        row_length: int = 8,
+        context_length: int = 1024,
+        token_length: int = 1,
+        row_length: int = 64,
+        step: int = 64,
+
     ):
-        self._token_size = token_size
-        self.context_length = context_length
-        self.overlap_rows = overlap_rows
+        self.step = step
         self.row_length = row_length
+        self.token_length = token_length
+        self.context_length = context_length
 
         self._tokenizer = Tokenizer(BPE())
-        self._tokenizer.pre_tokenizer = WhitespaceSplit()
         self._tokenizer.normalizer = NFKC()
+        self._tokenizer.pre_tokenizer = WhitespaceSplit()
+
 
     def to_dict(self) -> dict:
         return json.loads(self._tokenizer.to_str())
 
-    def _clean_text(self, text: str) -> str:
+
+    def _clean_text(
+        self,
+        text: str,
+    ) -> str:
+
         text_split = text.split("\n")
         text_split = [[self.BOL_TOKEN]+row.split() for row in text_split]
         text_split = [row[0:self.row_length] for row in text_split]
         text_split[0][0] = self.BOS_TOKEN
         text_split[-1][-1] = self.EOS_TOKEN
-        return "\n".join([" ".join(row) for row in text_split])
 
-    def train(self, pokedex_list: list[PokedexEntity]):
+        return " ".join([" ".join(row) for row in text_split])
+
+
+    def train(
+        self,
+        pokedex_list: list[PokedexEntity],
+    ):
+
         pokemon_data_list = [
             self._clean_text(pokedex_entity.data)
             for pokedex_entity in pokedex_list
@@ -53,7 +66,7 @@ class Pokenizer:
         ]
 
         trainer = BpeTrainer(
-            max_token_length=self._token_size,
+            max_token_length=self.token_length,
             special_tokens=[
                 self.BOS_TOKEN,
                 self.EOS_TOKEN,
@@ -71,58 +84,60 @@ class Pokenizer:
 
         return self
 
-    def _chunk_with_overlap(
+    def _chunk_text(
         self,
-        encoding_ids: List[int],
-    ) -> List[List[int]]:
+        text_split: List[str],
+    ) -> List[List[str]]:
+        
+        text_split_chunked = []
 
-        # Número de filas por ventana de contexto:
-        rows_per_window = self.context_length // self.row_length
-        step_rows = rows_per_window - self.overlap_rows
-        step = step_rows * self.row_length
+        text_split_padded = text_split +[self.PAD_TOKEN]*self.context_length
+        for i in range(0,len(text_split)-self.context_length +1 ,self.step):
+            text_split_chunked.append(
+                text_split_padded[i:i+self.context_length],
+            )
 
-        chunks = []
-        for i in range(0,len(encoding_ids),step):
-            chunks.append(encoding_ids[i:i+self.context_length])
-
-        return chunks
+        return text_split_chunked
 
     def _tokenize_function(
         self,
         batch,
     )->dict[str,list]:
 
-        bol_token_id = self._tokenizer.token_to_id(self.BOL_TOKEN)
-        bck_token_id = self._tokenizer.token_to_id(self.BCK_TOKEN)
-
         all_names = []
-        all_labels = []
+        all_chunk_id = []
         all_input_ids = []
+        all_inputs_text = []
+        all_original_text = []
         all_attention_masks = []
-
         for text, name in zip(batch["text"], batch["name"]):
-            encoding = self._tokenizer.encode(text)
-            encoding_ids_chunked = self._chunk_with_overlap(encoding.ids)
 
-            # Creamos pares input -> label (ventana t -> ventana t+1)
-            for i in range(len(encoding_ids_chunked) - 1):
+            text_chunked = self._chunk_text(text.split())
 
-                all_names.append(f"{name}_pair{i+1}")
-                all_input_ids.append(encoding_ids_chunked[i])
-                all_labels.append(encoding_ids_chunked[i + 1])
+            for i in range(len(text_chunked)):
 
-                attention_weights = [
-                    1.0 if token_id == bol_token_id else
-                    0.1 if token_id == bck_token_id else
-                    0.3
-                    for token_id in encoding_ids_chunked[i]
-                ]
-                all_attention_masks.append(attention_weights)
+                all_names.append(name)
+
+                all_chunk_id.append(i+1)
+
+                all_original_text.append(batch["text"])
+
+                all_inputs_text.append(" ".join(text_chunked[i][0]))
+    
+                all_input_ids.append(
+                    self._tokenizer.encode(' '.join(text_chunked[i])).ids,
+                )
+
+                all_attention_masks.append(
+                    self._tokenizer.encode(' '.join(text_chunked[i])).attention_mask,
+                )
 
         return {
             "name": all_names,
+            "chunk": all_chunk_id,
             "input_ids": all_input_ids,
-            "labels": all_labels,
+            "inputs_text": all_inputs_text,
+            "original_text": all_original_text,
             "attention_mask": all_attention_masks,
         }
 

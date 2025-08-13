@@ -7,21 +7,21 @@ from transformers import AutoConfig
 from transformers import GPT2LMHeadModel
 from transformers import TrainingArguments
 from transformers import PreTrainedTokenizerFast
-from transformers import DataCollatorWithPadding
+from transformers import DataCollatorForLanguageModeling
 from .inference_callback import InferenceCallback
 from src.domain.gld.prof_oak_pc import BoxEntity
 
 
 class PokemonTrainer:
 
-    __base_model__ = "distilgpt2"
-
     def __init__(
         self,
         box_entity: BoxEntity,
-        context_length=64,
+        context_length=1024,
+        row_length=64,
     ):
 
+        self._row_length = row_length
         self._context_length = context_length
 
         tokenizer_object = Tokenizer.from_str(
@@ -38,21 +38,28 @@ class PokemonTrainer:
 
         self._dataset = box_entity.dataset
 
-        self._data_collator = DataCollatorWithPadding(
+        self._data_collator = DataCollatorForLanguageModeling(
             tokenizer=self._tokenizer,
-            padding=False,
+            mlm=False,
         )
 
+        from transformers import GPT2Config, GPT2LMHeadModel
+
         self._model = GPT2LMHeadModel(
-            AutoConfig.from_pretrained(
-                pretrained_model_name_or_path=self.__base_model__,
+            GPT2Config(
                 vocab_size=len(self._tokenizer.get_vocab()),
                 n_ctx=self._context_length,
+                n_positions=self._context_length,
+                n_embd=768,                                                      # tamaño del embedding (por defecto GPT2 usa 768)
+                n_layer=6,                                                      # número de capas Transformer (por defecto 6)
+                n_head=12,                                                       # número de cabezas de atención (por defecto 12)
                 bos_token_id=self._tokenizer.bos_token_id,
                 eos_token_id=self._tokenizer.eos_token_id,
                 pad_token_id=self._tokenizer.pad_token_id,
             )
         )
+
+
 
     def create_trainer(self, **kwargs):
         model_dir = "/home/data/model"
@@ -60,14 +67,15 @@ class PokemonTrainer:
 
         default_args = {
             "output_dir": model_dir,
-            "per_device_train_batch_size": 10,
+            "per_device_train_batch_size": 1,
             "logging_steps": 10,
-            "gradient_accumulation_steps": 1,
-            "num_train_epochs": 50,
+            "gradient_accumulation_steps": 4,
+            "num_train_epochs": 20,
+            "warmup_steps": 100,
             "weight_decay": 0.1,
             "lr_scheduler_type": "cosine",
-            "learning_rate": 5e-4,
-            "save_steps": 5_000,
+            "learning_rate": 1e-5,
+            "save_steps": 100,
             "fp16": torch.cuda.is_available(),
             "dataloader_pin_memory": torch.cuda.is_available(),
         }
@@ -85,6 +93,7 @@ class PokemonTrainer:
                 InferenceCallback(
                     self._tokenizer,
                     interval_steps=10,
+                    row_length=self._row_length,
                     context_length=self._context_length,
                 )
             ],

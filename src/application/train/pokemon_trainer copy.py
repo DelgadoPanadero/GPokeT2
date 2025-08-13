@@ -87,6 +87,8 @@ class PokemonTrainer:
             )
         )
 
+
+
         # Crear vector de pesos para la pérdida
         weights = torch.ones(len(self._tokenizer))
         weights[self._tokenizer.convert_tokens_to_ids("~")] = 0.5
