@@ -94,7 +94,7 @@ class PokemonTrainer:
                     self._tokenizer,
                     interval_steps=10,
                     row_length=self._row_length,
-                    context_length=self._context_length,
+                    context_length=self._context_length*4,
                 )
             ],
         )
