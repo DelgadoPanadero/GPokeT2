@@ -71,7 +71,7 @@ class PokemonTrainer:
             "logging_steps": 10,
             "gradient_accumulation_steps": 4,
             "num_train_epochs": 20,
-            "warmup_steps": 100,
+            "warmup_steps": 1000,
             "weight_decay": 0.1,
             "lr_scheduler_type": "cosine",
             "learning_rate": 1e-5,

@@ -23,7 +23,7 @@ class Pokenizer:
         context_length: int = 1024,
         token_length: int = 1,
         row_length: int = 64,
-        step: int = 64,
+        step: int = 8,
 
     ):
         self.step = step
@@ -122,7 +122,7 @@ class Pokenizer:
 
                 all_original_text.append(batch["text"])
 
-                all_inputs_text.append(" ".join(text_chunked[i][0]))
+                all_inputs_text.append(" ".join(text_chunked[i]))
     
                 all_input_ids.append(
                     self._tokenizer.encode(' '.join(text_chunked[i])).ids,
