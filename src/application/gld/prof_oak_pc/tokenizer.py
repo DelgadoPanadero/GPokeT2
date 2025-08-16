@@ -23,18 +23,27 @@ class Pokenizer:
         context_length: int = 1024,
         token_length: int = 1,
         row_length: int = 64,
-        step: int = 8,
+        chunk_step_rows: int = 1,
 
     ):
-        self.step = step
         self.row_length = row_length
         self.token_length = token_length
         self.context_length = context_length
+        self.chunk_step_rows = chunk_step_rows
 
         self._tokenizer = Tokenizer(BPE())
         self._tokenizer.normalizer = NFKC()
         self._tokenizer.pre_tokenizer = WhitespaceSplit()
 
+        # self.tokenizer = PreTrainedTokenizerFast(
+        #    tokenizer_object=self._tokenizer,
+        #    bos_token=self.BOS_TOKEN,
+        #    eos_token=self.EOS_TOKEN,
+        #    unk_token=self.UNK_TOKEN,
+        #    pad_token=self.PAD_TOKEN,
+        #    model_max_length=self.context_length,
+        #    max_token_length=1,
+        # )
 
     def to_dict(self) -> dict:
         return json.loads(self._tokenizer.to_str())
@@ -46,7 +55,8 @@ class Pokenizer:
     ) -> str:
 
         text_split = text.split("\n")
-        text_split = [[self.BOL_TOKEN]+row.split() for row in text_split]
+        text_split = [["00"]+r.split() for i,r in enumerate(text_split)]
+        #text_split = [["%02d" % i]+r.split() for i,r in enumerate(text_split)]
         text_split = [row[0:self.row_length] for row in text_split]
         text_split[0][0] = self.BOS_TOKEN
         text_split[-1][-1] = self.EOS_TOKEN
@@ -91,8 +101,10 @@ class Pokenizer:
         
         text_split_chunked = []
 
+        step = self.chunk_step_rows * self.row_length
+
         text_split_padded = text_split +[self.PAD_TOKEN]*self.context_length
-        for i in range(0,len(text_split)-self.context_length +1 ,self.step):
+        for i in range(0,len(text_split)-self.context_length +1 ,step):
             text_split_chunked.append(
                 text_split_padded[i:i+self.context_length],
             )

@@ -3,6 +3,7 @@ import torch
 from transformers import TrainerState
 from transformers import TrainerControl
 from transformers import TrainerCallback
+from transformers import GPT2LMHeadModel
 
 
 class InferenceCallback(TrainerCallback):
@@ -29,7 +30,16 @@ class InferenceCallback(TrainerCallback):
             state.global_step % self.interval_steps == 0
             and state.global_step > 0
         ):
-            model = kwargs["model"]
+            model : GPT2LMHeadModel = kwargs["model"]
+
+            model.config.n_positions = self.context_length
+            model.config.n_ctx = self.context_length
+            old_embed = model.transformer.wpe.weight.data
+            old_max_positions, emb_dim = old_embed.shape
+            repeats = (self.context_length + old_max_positions - 1) // old_max_positions
+            tiled_embed = old_embed.repeat((repeats, 1))[:self.context_length]
+            model.transformer.wpe.weight = torch.nn.Parameter(tiled_embed)
+
             device = next(model.parameters()).device
 
             inputs = self.tokenizer("[BOS]", return_tensors="pt").to(device)
@@ -49,6 +59,8 @@ class InferenceCallback(TrainerCallback):
                         eos_token_id=self.tokenizer.eos_token_id,
                     )
                 return output
+            
+            breakpoint()
 
             output = run(inputs=inputs)
 
